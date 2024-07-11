@@ -4,6 +4,16 @@ pub type GamePos = [Player; 9];
 pub const NONE: Player = 1;
 pub const X: Player = 2;
 pub const O: Player = 3;
+const WINNING_PATTERNS: [[u8; 3]; 8] = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+];
 
 #[allow(dead_code)]
 struct GameReport {
@@ -27,16 +37,6 @@ fn create_id(pos: &GamePos) -> u32 {
 
 #[allow(dead_code)]
 fn find_winner(pos: &GamePos) -> Player {
-    const WINNING_PATTERNS: [[u8; 3]; 8] = [
-        [0, 1, 2],
-        [3, 4, 5],
-        [6, 7, 8],
-        [0, 3, 6],
-        [1, 4, 7],
-        [2, 5, 8],
-        [0, 4, 8],
-        [2, 4, 6],
-    ];
     let mut player_count: u8 = 0;
 
     for i in 0..8 {
@@ -56,7 +56,7 @@ fn find_winner(pos: &GamePos) -> Player {
 
 #[allow(dead_code)]
 fn find_empty_spaces(pos: &GamePos) -> Vec<u8> {
-    let mut empty_spaces: Vec<u8> = vec![];
+    let mut empty_spaces: Vec<u8> = Vec::new();
 
     for i in 0..9 {
         if pos[i] == NONE {
@@ -69,17 +69,23 @@ fn find_empty_spaces(pos: &GamePos) -> Vec<u8> {
 
 #[allow(dead_code)]
 fn find_player_winning_moves(pos: &GamePos, player: Player) -> Vec<u8> {
-    let mut winning_moves: Vec<u8> = vec![];
-    let empty_spaces: Vec<u8> = find_empty_spaces(&pos);
+    let mut winning_moves: Vec<u8> = Vec::new();
+    let mut player_count: u8 = 0;
 
-    for i in 0..empty_spaces.len() {
-        let mut cloned_pos: GamePos = pos.clone();
-
-        cloned_pos[i] = player;
-
-        if find_winner(&cloned_pos) == player {
-            winning_moves.push(i as u8);
+    for i in 0..8 {
+        for j in 0..3 {
+            player_count += pos[WINNING_PATTERNS[i][j] as usize];
         }
+
+        if player * 2 == player_count - 1 {
+            for j in 0..3 {
+                if pos[WINNING_PATTERNS[i][j] as usize] == NONE {
+                    winning_moves.push(WINNING_PATTERNS[i][j] as u8);
+                }
+            }
+        }
+
+        player_count = 0;
     }
 
     return winning_moves;
