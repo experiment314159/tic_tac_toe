@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 pub type Player = u8;
 pub type GamePos = [Player; 9];
 
@@ -16,6 +14,30 @@ const WINNING_PATTERNS: [[u8; 3]; 8] = [
     [0, 4, 8],
     [2, 4, 6],
 ];
+
+#[allow(dead_code)]
+fn enemy(player: Player) -> Player {
+    if player == X {
+        return O;
+    } else if player == O {
+        return X;
+    } else {
+        return NONE;
+    }
+}
+
+#[allow(dead_code)]
+fn find_empty_spaces(pos: &GamePos) -> Vec<u8> {
+    let mut empty_spaces: Vec<u8> = Vec::new();
+
+    for i in 0..9 {
+        if pos[i] == NONE {
+            empty_spaces.push(i as u8);
+        }
+    }
+
+    return empty_spaces;
+}
 
 #[allow(dead_code)]
 fn find_winner(pos: &GamePos) -> Player {
@@ -39,20 +61,7 @@ fn find_winner(pos: &GamePos) -> Player {
 }
 
 #[allow(dead_code)]
-fn find_empty_spaces(pos: &GamePos) -> Vec<u8> {
-    let mut empty_spaces: Vec<u8> = Vec::new();
-
-    for i in 0..9 {
-        if pos[i] == NONE {
-            empty_spaces.push(i as u8);
-        }
-    }
-
-    return empty_spaces;
-}
-
-#[allow(dead_code)]
-fn find_player_winning_moves(pos: &GamePos, player: Player) -> Vec<u8> {
+fn find_winning_moves(pos: &GamePos, player: Player) -> Vec<u8> {
     let mut winning_moves: Vec<u8> = Vec::new();
     let mut player_count: u8 = 0;
 
@@ -75,15 +84,45 @@ fn find_player_winning_moves(pos: &GamePos, player: Player) -> Vec<u8> {
     return winning_moves;
 }
 
-// #[allow(dead_code)]
-// fn rating_all_moves(pos: &GamePos, player: Player) -> HashMap<GamePos, u32> {
-//     let mut rated_moves: HashMap<GamePos, u32> = HashMap::new();
-//     let mut waiting_stack: Vec<GamePos> = vec![pos.clone()];
-//     let in_prosess_pos: &GamePos = &waiting_stack[waiting_stack.len() - 1];
+#[allow(dead_code)]
+fn rate_potential(pos: &GamePos, player: Player, added_rating: u8) -> [u8; 9] {
+    let mut rated_moves: [u8; 9] = [0; 9];
 
-//     while !waiting_stack.is_empty() {
+    for i in 0..8 {
+        let mut player_count: u8 = 0;
 
-//     }
+        for j in 0..3 {
+            if pos[WINNING_PATTERNS[i][j] as usize] == player {
+                player_count += 1;
+            }
 
-//     return rated_moves;
-// }
+            if pos[WINNING_PATTERNS[i][j] as usize] == enemy(player) {
+                player_count = 0;
+                break;
+            }
+        }
+
+        for j in 0..3 {
+            rated_moves[WINNING_PATTERNS[i][j] as usize] += added_rating * player_count;
+        }
+    }
+
+    return rated_moves;
+}
+
+#[allow(dead_code)]
+pub fn rate_moves(pos: &GamePos, player: Player) -> [u8; 9] {
+    let mut rated_moves: [u8; 9] = [2, 1, 2, 1, 3, 1, 2, 1, 2];
+    let rate_1 = rate_potential(&pos, player, 2);
+    let rate_2 = rate_potential(&pos, enemy(player), 1);
+
+    for i in 0..9 {
+        rated_moves[i] += rate_1[i] + rate_2[i];
+
+        if pos[i] != NONE {
+            rated_moves[i] = 0;
+        }
+    }
+
+    return rated_moves;
+}
