@@ -1,3 +1,5 @@
+use std::u8::MAX;
+
 pub type Player = u8;
 pub type GamePos = [Player; 9];
 
@@ -63,22 +65,22 @@ fn find_winner(pos: &GamePos) -> Player {
 #[allow(dead_code)]
 fn find_winning_moves(pos: &GamePos, player: Player) -> Vec<u8> {
     let mut winning_moves: Vec<u8> = Vec::new();
-    let mut player_count: u8 = 0;
 
     for i in 0..8 {
-        for j in 0..3 {
-            player_count += pos[WINNING_PATTERNS[i][j] as usize];
-        }
+        let mut player_count: u8 = 0;
+        let mut winning_move: u8 = MAX;
 
-        if player * 2 == player_count {
-            for j in 0..3 {
-                if pos[WINNING_PATTERNS[i][j] as usize] == NONE {
-                    winning_moves.push(WINNING_PATTERNS[i][j] as u8);
-                }
+        for j in 0..3 {
+            if pos[WINNING_PATTERNS[i][j] as usize] == player {
+                player_count += 1;
+            } else if pos[WINNING_PATTERNS[i][j] as usize] == NONE {
+                winning_move = WINNING_PATTERNS[i][j];
             }
         }
 
-        player_count = 0;
+        if player_count == 2 && winning_move != MAX {
+            winning_moves.push(winning_move);
+        }
     }
 
     return winning_moves;
@@ -111,13 +113,13 @@ fn rate_potential(pos: &GamePos, player: Player, added_rating: u8) -> [u8; 9] {
 }
 
 #[allow(dead_code)]
-pub fn rate_moves(pos: &GamePos, player: Player) -> [u8; 9] {
+fn rate_moves(pos: &GamePos, player: Player) -> [u8; 9] {
     let mut rated_moves: [u8; 9] = [2, 1, 2, 1, 3, 1, 2, 1, 2];
-    let rate_1 = rate_potential(&pos, player, 2);
-    let rate_2 = rate_potential(&pos, enemy(player), 1);
+    let ai_potential: [u8; 9] = rate_potential(&pos, player, 2);
+    let enemy_potential: [u8; 9] = rate_potential(&pos, enemy(player), 1);
 
     for i in 0..9 {
-        rated_moves[i] += rate_1[i] + rate_2[i];
+        rated_moves[i] += ai_potential[i] + enemy_potential[i];
 
         if pos[i] != NONE {
             rated_moves[i] = 0;
@@ -125,4 +127,26 @@ pub fn rate_moves(pos: &GamePos, player: Player) -> [u8; 9] {
     }
 
     return rated_moves;
+}
+
+pub fn find_best_move(pos: &GamePos, player: Player) -> u8 {
+    let mut best_move: u8 = 0;
+    let mut best_move_rating: u8 = 0;
+    let rated_moves: [u8; 9] = rate_moves(&pos, player);
+
+    if find_winning_moves(&pos, player).len() > 0 {
+        println!("{:?}", find_winning_moves(&pos, player));
+        best_move = find_winning_moves(&pos, player)[0];
+    } else if find_winning_moves(&pos, enemy(player)).len() > 0 {
+        best_move = find_winning_moves(&pos, enemy(player))[0];
+    } else {
+        for i in 0..9 {
+            if rated_moves[i] > best_move_rating {
+                best_move = i as u8;
+                best_move_rating = rated_moves[i];
+            }
+        }
+    }
+
+    return best_move;
 }
